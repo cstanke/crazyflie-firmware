@@ -57,6 +57,7 @@
 /**************** Some useful macros ***************/
 
 #define RED {0x10, 0x00, 0x00}
+#define YELLOW {0xff, 0xff, 0x00}
 #define GREEN {0x00, 0x10, 0x00}
 #define BLUE {0x00, 0x00, 0x10}
 #define WHITE {0xff, 0xff, 0xff}
@@ -76,7 +77,7 @@ static void blackEffect(uint8_t buffer[][3], bool reset)
   
   if (reset)
   {
-    for (i=0; i<16; i++) {
+    for (i=0; i<12; i++) {
       buffer[i][0] = 0;
       buffer[i][1] = 0;
       buffer[i][2] = 0;
@@ -84,13 +85,57 @@ static void blackEffect(uint8_t buffer[][3], bool reset)
   }
 }
 
+static void ledTest(uint8_t buffer[][3], bool reset)
+{
+    int i;
+    uint8_t dark_green[3] = {0, 127, 0};
+    uint8_t green[3] = GREEN;
+    uint8_t blue[3] = BLUE;
+    uint8_t red[3] = RED;
+    uint8_t orange[3] = {255, 90, 0};
+    
+    if (reset)
+    {
+        for (i=0; i<12; i++) {
+            buffer[i][0] = 0;
+            buffer[i][1] = 0;
+            buffer[i][2] = 0;
+        }
+    }
+  
+    
+    COPY_COLOR(buffer[11], green);
+    COPY_COLOR(buffer[0], dark_green);
+    COPY_COLOR(buffer[1], green);
+    
+    COPY_COLOR(buffer[3], blue);
+    COPY_COLOR(buffer[9], blue);
+    
+    COPY_COLOR(buffer[4], red);
+    COPY_COLOR(buffer[5], red);
+    COPY_COLOR(buffer[6], orange);
+    COPY_COLOR(buffer[7], red);
+    COPY_COLOR(buffer[8], red);
+    
+    /*
+    COPY_COLOR(buffer[3], test_led[1]);
+    COPY_COLOR(buffer[6], test_led[0]);
+    COPY_COLOR(buffer[9], test_led[1]);
+    */
+}
+
 /**************** White spin ***************/
 
-static const uint8_t whiteRing[][3] = {{40, 40, 40}, {32, 32, 32}, {16,16,16}, {8,8,8},
-                                       {4,4,4}, {2,2,2}, {1,1,1}, BLACK,
-                                       BLACK, BLACK, BLACK, BLACK,
-                                       BLACK, BLACK, BLACK, BLACK,
-                                      };
+static const uint8_t cw_whiteRing[][3] = {BLACK, BLACK, BLACK, BLACK, BLACK,
+                                          {1,1,1}, {2,2,2}, {4,4,4}, {8,8,8}, 
+                                          {16,16,16}, {32, 32, 32}, {40, 40, 40}
+                                         };
+
+static const uint8_t ccw_whiteRing[][3] = {{40, 40, 40}, {32, 32, 32}, {16,16,16}, 
+                                           {8,8,8}, {4,4,4}, {2,2,2}, {1,1,1}, 
+                                           BLACK, BLACK, BLACK, BLACK, BLACK
+                                         };
+
 
 static void whiteSpinEffect(uint8_t buffer[][3], bool reset)
 {
@@ -99,24 +144,34 @@ static void whiteSpinEffect(uint8_t buffer[][3], bool reset)
   
   if (reset)
   {
-    for (i=0; i<16; i++) {
-      COPY_COLOR(buffer[i], whiteRing[i]);
+    for (i=0; i<12; i++) {
+      COPY_COLOR(buffer[i], cw_whiteRing[i]);
     }
   }
 
-  COPY_COLOR(temp, buffer[0]);
-  for (i=0; i<15; i++) {
-    COPY_COLOR(buffer[i], buffer[i+1]);
-  }
-  COPY_COLOR(buffer[15], temp);
+    /* Runs Counter Clockwise */
+    /*
+    COPY_COLOR(temp, buffer[0]);
+    for (i=0; i<11; i++) {
+        COPY_COLOR(buffer[i], buffer[i+1]);
+    }
+    COPY_COLOR(buffer[11], temp);
+    */
+    
+    /* Runs Clockwise */
+    COPY_COLOR(temp, buffer[11]);
+    for (i=11; i>0; i--) {
+        COPY_COLOR(buffer[i], buffer[i-1]);
+    }
+    COPY_COLOR(buffer[0], temp);  
+
 }
 
 /**************** Color spin ***************/
 
-static const uint8_t colorRing[][3] = {{0,0,32}, {0,0,16}, {0,0,8}, {0,0,4},
-                                       {0,0,2}, {0,0,1}, {16,16,16}, {8,8,8},
-                                       {4,4,4},{2,2,2},{32,0,0},{16,0,0},
-                                       {8,0,0}, {4,0,0}, {2,0,0}, {1,0,0},
+static const uint8_t colorRing[][3] = {{0,0,24}, {0,0,12}, {0,0,6}, {0,0,3}, {0,0,1}, 
+                                       BLACK, BLACK, 
+                                       {24,0,0}, {12,0,0}, {6,0,0}, {3,0,0}, {1,0,0}
                                       };
 
 static void colorSpinEffect(uint8_t buffer[][3], bool reset)
@@ -126,16 +181,26 @@ static void colorSpinEffect(uint8_t buffer[][3], bool reset)
   
   if (reset)
   {
-    for (i=0; i<16; i++) {
+    for (i=0; i<12; i++) {
       COPY_COLOR(buffer[i], colorRing[i]);
     }
   }
 
-  COPY_COLOR(temp, buffer[0]);
-  for (i=0; i<15; i++) {
-    COPY_COLOR(buffer[i], buffer[i+1]);
-  }
-  COPY_COLOR(buffer[15], temp);
+    /* Runs Counter Clockwise */
+    /*
+    COPY_COLOR(temp, buffer[0]);
+    for (i=0; i<11; i++) {
+        COPY_COLOR(buffer[i], buffer[i+1]);
+    }
+    COPY_COLOR(buffer[11], temp);
+    */
+    
+    /* Runs Clockwise */
+    COPY_COLOR(temp, buffer[11]);
+    for (i=11; i>0; i--) {
+        COPY_COLOR(buffer[i], buffer[i-1]);
+    }
+    COPY_COLOR(buffer[0], temp);  
 }
 
 /**************** Dynamic tilt effect ***************/
@@ -160,31 +225,29 @@ static void tiltEffect(uint8_t buffer[][3], bool reset)
     pitch=SIGN(pitch)*pitch*pitch;
     roll*=SIGN(roll)*roll;
     
+    // 12 pixels
+    buffer[11][0] = LIMIT(led_middle + pitch);
     buffer[0][0] = LIMIT(led_middle + pitch);
     buffer[1][0] = LIMIT(led_middle + pitch);
-    buffer[2][0] = LIMIT(led_middle + pitch);
-    buffer[3][0] = LIMIT(led_middle + pitch);
     
+    buffer[2][2] = LIMIT(led_middle - roll);
+    buffer[3][2] = LIMIT(led_middle - roll);
     buffer[4][2] = LIMIT(led_middle - roll);
-    buffer[5][2] = LIMIT(led_middle - roll);
-    buffer[6][2] = LIMIT(led_middle - roll);
-    buffer[7][2] = LIMIT(led_middle - roll);
     
-    buffer[8][0] = LIMIT(led_middle - pitch);
-    buffer[9][0] = LIMIT(led_middle - pitch);
-    buffer[10][0] = LIMIT(led_middle - pitch);
-    buffer[11][0] = LIMIT(led_middle - pitch);
+    buffer[5][0] = LIMIT(led_middle - pitch);
+    buffer[6][0] = LIMIT(led_middle - pitch);
+    buffer[7][0] = LIMIT(led_middle - pitch);
 
-    buffer[12][2] = LIMIT(led_middle + roll);
-    buffer[13][2] = LIMIT(led_middle + roll);
-    buffer[14][2] = LIMIT(led_middle + roll);
-    buffer[15][2] = LIMIT(led_middle + roll);
+    buffer[8][2] = LIMIT(led_middle + roll);
+    buffer[9][2] = LIMIT(led_middle + roll);
+    buffer[10][2] = LIMIT(led_middle + roll);
   }
 }
 
 /**************** Effect list ***************/
 
 NeopixelRingEffect effectsFct[] = {blackEffect,
+                                   ledTest,
                                    whiteSpinEffect, 
                                    colorSpinEffect, 
                                    tiltEffect,
@@ -201,17 +264,16 @@ static uint32_t neffect;
 static uint8_t black[][3] = {BLACK, BLACK, BLACK, BLACK,
                              BLACK, BLACK, BLACK, BLACK,
                              BLACK, BLACK, BLACK, BLACK,
-                             BLACK, BLACK, BLACK, BLACK,
                             };
 
 void neopixelringWorker(void * data)
 {
   static int current_effect = 0;
-  static uint8_t buffer[16][3];
+  static uint8_t buffer[12][3];
   bool reset = true;
   
   if (!pmIsDischarging() || (effect > neffect)) {
-    ws2812Send(black, 16);
+    ws2812Send(black, 12);
     return;
   }
   
@@ -223,7 +285,7 @@ void neopixelringWorker(void * data)
   current_effect = effect;
   
   effectsFct[current_effect](buffer, reset);
-  ws2812Send(buffer, 16);
+  ws2812Send(buffer, 12);
 }
 
 static void neopixelringTimer(xTimerHandle timer)
@@ -246,5 +308,3 @@ PARAM_GROUP_START(ring)
 PARAM_ADD(PARAM_UINT32, effect, &effect)
 PARAM_ADD(PARAM_UINT32 | PARAM_RONLY, neffect, &neffect)
 PARAM_GROUP_STOP(ring)
-
- 
