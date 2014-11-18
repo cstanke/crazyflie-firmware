@@ -70,14 +70,20 @@
 #define SIGN(a) ((a>=0)?1:-1)
 
 #define MAX_PIXELS 12
-#define MAIN_TIMER_MS 40
-// #define MAIN_TIMER_MS 1000 // VERY slow spinner
+#define MAIN_TIMER_MS 40 // Bitcraze default
+//#define MAIN_TIMER_MS 80
+//#define MAIN_TIMER_MS 1000 // VERY slow
+
+static xTimerHandle timer;
 
 /**************** Black (LEDs OFF) ***************/
 
 static void blackEffect(uint8_t buffer[][3], bool reset)
 {
     int i;
+  
+    // Set the timer speed...
+    xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), 100);
   
     if (reset)
     {
@@ -94,13 +100,17 @@ static void blackEffect(uint8_t buffer[][3], bool reset)
 static void ledTest(uint8_t buffer[][3], bool reset)
 {
     int i;
-    uint8_t dark_green[3] = {0, 20, 0};
+
+    //uint8_t dark_green[3] = {0, 20, 0};
     //uint8_t black[3] = {0, 0, 0};
-    //uint8_t green[3] = GREEN;
-    //uint8_t blue[3] = BLUE;
-    //uint8_t red[3] = RED;
+    uint8_t green[3] = GREEN;
+    uint8_t blue[3] = BLUE;
+    uint8_t red[3] = RED;
     //uint8_t orange[3] = {255, 90, 0};
     
+    // Set the timer speed...
+    //xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), 1000);
+
     if (reset)
     {
         for (i=0; i<MAX_PIXELS; i++) {
@@ -110,11 +120,13 @@ static void ledTest(uint8_t buffer[][3], bool reset)
         }
     }
     
-    for (i=0;i<MAX_PIXELS;i++)
-    {
-        COPY_COLOR(buffer[i], dark_green);
-    }
+    COPY_COLOR(buffer[0], red);
+    COPY_COLOR(buffer[1], green);
+    COPY_COLOR(buffer[2], blue);
     
+   
+    
+        
     /*    
     COPY_COLOR(buffer[11], green);
     COPY_COLOR(buffer[0], dark_green);
@@ -137,6 +149,39 @@ static void ledTest(uint8_t buffer[][3], bool reset)
     */
 }
 
+/**************** Green Spin ***************/
+
+static const uint8_t greenSpin[][3] = {
+                                        {0,20.0}, BLACK, BLACK, {0,20.0}, BLACK, BLACK,
+                                        {0,20.0}, BLACK, BLACK, {0,20.0}, BLACK, BLACK,
+                                      };
+
+static void greenSpinEffect(uint8_t buffer[][3], bool reset)
+{
+    int i;
+    uint8_t temp[3];
+    
+    // Set the timer speed a litte slower...
+    xTimerChangePeriod(timer, M2T(100), 100);
+
+    if (reset)
+    {
+        for (i=0; i<MAX_PIXELS; i++)
+        {
+            COPY_COLOR(buffer[i], greenSpin[i]);
+        }
+    }
+    
+    COPY_COLOR(temp, buffer[MAX_PIXELS-1]);
+    for (i=MAX_PIXELS-1;i>0;i--)
+    {
+        COPY_COLOR(buffer[i], buffer[i-1]);
+    }
+    COPY_COLOR(buffer[0], temp);
+}
+
+
+
 /**************** Thrust ***************/
 
 static void thrustEffect(uint8_t buffer[][3], bool reset)
@@ -145,6 +190,9 @@ static void thrustEffect(uint8_t buffer[][3], bool reset)
     int i;
     int thrust_value = 0;
     
+    // Set the timer speed...
+    xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), 100);
+
     if (reset) {
         //Init
         thrustid = logGetVarId("stabilizer", "thrust");
@@ -178,6 +226,9 @@ static void whiteSpinEffect(uint8_t buffer[][3], bool reset)
 {
   int i;
   uint8_t temp[3];
+  
+    // Set the timer speed...
+    xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), 100);
   
   if (reset)
   {
@@ -213,15 +264,19 @@ static const uint8_t colorRing[][3] = {
 
 static void colorSpinEffect(uint8_t buffer[][3], bool reset)
 {
-  int i;
-  uint8_t temp[3];
+    int i;
+    uint8_t temp[3];
   
-  if (reset)
-  {
-    for (i=0; i<MAX_PIXELS; i++) {
-      COPY_COLOR(buffer[i], colorRing[i]);
+    // Set the timer speed...
+    xTimerChangePeriod(timer, M2T(80), 100);
+  
+    if (reset)
+    {
+        for (i=0; i<MAX_PIXELS; i++)
+        {
+            COPY_COLOR(buffer[i], colorRing[i]);
+        }
     }
-  }
 
     /* Runs Counter Clockwise */
     /*
@@ -234,7 +289,8 @@ static void colorSpinEffect(uint8_t buffer[][3], bool reset)
     
     /* Runs Clockwise */
     COPY_COLOR(temp, buffer[11]);
-    for (i=11; i>0; i--) {
+    for (i=11; i>0; i--)
+    {
         COPY_COLOR(buffer[i], buffer[i-1]);
     }
     COPY_COLOR(buffer[0], temp);  
@@ -246,6 +302,9 @@ static void tiltEffect(uint8_t buffer[][3], bool reset)
 {
   static int pitchid, rollid, thrust=-1;
   
+    // Set the timer speed...
+    xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), 100);
+  
   if (reset)
     {
         int i;
@@ -256,45 +315,49 @@ static void tiltEffect(uint8_t buffer[][3], bool reset)
         }
     }
   
-  if (thrust<0) {
-    //Init
-    pitchid = logGetVarId("stabilizer", "pitch");
-    rollid = logGetVarId("stabilizer", "roll");
-    thrust = logGetVarId("stabilizer", "thrust");
-  } else {
-    const int led_middle = 10;
-    float pitch = -1*logGetFloat(pitchid);
-    float roll  = -1*logGetFloat(rollid);
+    if (thrust<0)
+    {
+        //Init
+        pitchid = logGetVarId("stabilizer", "pitch");
+        rollid = logGetVarId("stabilizer", "roll");
+        thrust = logGetVarId("stabilizer", "thrust");
+    } 
+    else
+    {
+        const int led_middle = 10;
+        float pitch = -1*logGetFloat(pitchid);
+        float roll  = -1*logGetFloat(rollid);
     
-    pitch = (pitch>20)?20:(pitch<-20)?-20:pitch;
-    roll = (roll>20)?20:(roll<-20)?-20:roll;
+        pitch = (pitch>20)?20:(pitch<-20)?-20:pitch;
+        roll = (roll>20)?20:(roll<-20)?-20:roll;
       
-    pitch=SIGN(pitch)*pitch*pitch;
-    roll*=SIGN(roll)*roll;
+        pitch=SIGN(pitch)*pitch*pitch;
+        roll*=SIGN(roll)*roll;
     
-    // 12 pixels
-    buffer[11][0] = LIMIT(led_middle + pitch);
-    buffer[0][0] = LIMIT(led_middle + pitch);
-    buffer[1][0] = LIMIT(led_middle + pitch);
+        // 12 pixels
+        buffer[11][0] = LIMIT(led_middle + pitch);
+        buffer[0][0] = LIMIT(led_middle + pitch);
+        buffer[1][0] = LIMIT(led_middle + pitch);
     
-    buffer[2][2] = LIMIT(led_middle + roll);
-    buffer[3][2] = LIMIT(led_middle + roll);
-    buffer[4][2] = LIMIT(led_middle + roll);
+        buffer[2][2] = LIMIT(led_middle + roll);
+        buffer[3][2] = LIMIT(led_middle + roll);
+        buffer[4][2] = LIMIT(led_middle + roll);
     
-    buffer[5][0] = LIMIT(led_middle - pitch);
-    buffer[6][0] = LIMIT(led_middle - pitch);
-    buffer[7][0] = LIMIT(led_middle - pitch);
+        buffer[5][0] = LIMIT(led_middle - pitch);
+        buffer[6][0] = LIMIT(led_middle - pitch);
+        buffer[7][0] = LIMIT(led_middle - pitch);
 
-    buffer[8][2] = LIMIT(led_middle - roll);
-    buffer[9][2] = LIMIT(led_middle - roll);
-    buffer[10][2] = LIMIT(led_middle - roll);
-  }
+        buffer[8][2] = LIMIT(led_middle - roll);
+        buffer[9][2] = LIMIT(led_middle - roll);
+        buffer[10][2] = LIMIT(led_middle - roll);
+    }
 }
 
 /**************** Effect list ***************/
 
 NeopixelRingEffect effectsFct[] = {blackEffect,
                                    ledTest,
+                                   greenSpinEffect,
                                    whiteSpinEffect, 
                                    colorSpinEffect,
                                    thrustEffect,
@@ -304,7 +367,7 @@ NeopixelRingEffect effectsFct[] = {blackEffect,
 
 /********** Ring init and switching **********/
 
-static xTimerHandle timer;
+// static xTimerHandle timer;
 
 static uint32_t effect;
 static uint32_t neffect;
@@ -316,40 +379,44 @@ static uint8_t black[][3] = {BLACK, BLACK, BLACK, BLACK,
 
 void neopixelringWorker(void * data)
 {
-  static int current_effect = 0;
-  static uint8_t buffer[MAX_PIXELS][3];
-  bool reset = true;
+    static int current_effect = 0;
+    static uint8_t buffer[MAX_PIXELS][3];
+    bool reset = true;
   
-  if (!pmIsDischarging() || (effect > neffect)) {
-    ws2812Send(black, MAX_PIXELS);
-    return;
-  }
+    if (!pmIsDischarging() || (effect > neffect))
+    {
+        ws2812Send(black, MAX_PIXELS);
+        return;
+    }
   
-  if (current_effect != effect) {
-    reset = true;
-  } else {
-    reset = false;
-  }
-  current_effect = effect;
+    if (current_effect != effect)
+    {
+        reset = true;
+    }
+    else
+    {
+        reset = false;
+    }
+    current_effect = effect;
   
-  effectsFct[current_effect](buffer, reset);
-  ws2812Send(buffer, MAX_PIXELS);
+    effectsFct[current_effect](buffer, reset);
+    ws2812Send(buffer, MAX_PIXELS);
 }
 
 static void neopixelringTimer(xTimerHandle timer)
 {
-  workerSchedule(neopixelringWorker, NULL);
+    workerSchedule(neopixelringWorker, NULL);
 }
 
 void neopixelringInit(void)
 {
-  ws2812Init();
+    ws2812Init();
   
-  neffect = sizeof(effectsFct)/sizeof(effectsFct[0])-1;
+    neffect = sizeof(effectsFct)/sizeof(effectsFct[0])-1;  
   
-  timer = xTimerCreate( (const signed char *)"ringTimer", M2T(MAIN_TIMER_MS), 
+    timer = xTimerCreate( (const signed char *)"ringTimer", M2T(MAIN_TIMER_MS), 
                                      pdTRUE, NULL, neopixelringTimer );
-  xTimerStart(timer, 100);
+    xTimerStart(timer, 100);
 }
 
 PARAM_GROUP_START(ring)
