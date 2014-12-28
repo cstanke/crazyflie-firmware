@@ -46,8 +46,8 @@
  * activable using the ring.effect parameter.
  *
  * The ring color needs to be written in the buffer argument. The buffer is not
- * modified in memory as long as reset is not 'true', see the spin effects for
- * and example.
+ * modified in memory as long as reset is not 'true', see the whiteSpinEffect for
+ * an example.
  *
  * The log subsystem can be used to get the value of any log variable of the
  * system. See tiltEffect for an example.
@@ -70,11 +70,40 @@
 #define SIGN(a) ((a>=0)?1:-1)
 
 #define MAX_PIXELS 12
+#define TIMER_BLOCK_TIME 100 // A good default for xBlockTime
 #define MAIN_TIMER_MS 40 // Bitcraze default
 //#define MAIN_TIMER_MS 80
 //#define MAIN_TIMER_MS 1000 // VERY slow
 
 static xTimerHandle timer;
+
+void spinLEDs(bool direction, uint8_t buffer[][3])
+{
+    int i;
+    uint8_t temp[3];
+    
+    if (direction == true)
+    {
+        /* Runs Clockwise */
+        COPY_COLOR(temp, buffer[11]);
+        for (i=11; i>0; i--)
+        {
+            COPY_COLOR(buffer[i], buffer[i-1]);
+        }
+        COPY_COLOR(buffer[0], temp);
+    }
+
+    if (direction == false)
+    {
+        /* Runs Counter Clockwise */
+        COPY_COLOR(temp, buffer[0]);
+        for (i=0; i<11; i++)
+        {
+            COPY_COLOR(buffer[i], buffer[i+1]);
+        }
+        COPY_COLOR(buffer[11], temp);
+    }
+}
 
 /**************** Black (LEDs OFF) ***************/
 
@@ -83,7 +112,7 @@ static void blackEffect(uint8_t buffer[][3], bool reset)
     int i;
   
     // Set the timer speed...
-    xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), 100);
+    xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), TIMER_BLOCK_TIME);
   
     if (reset)
     {
@@ -100,32 +129,35 @@ static void blackEffect(uint8_t buffer[][3], bool reset)
 static void ledTest(uint8_t buffer[][3], bool reset)
 {
     int i;
+    
+    // Set the timer speed...
+    xTimerChangePeriod(timer, M2T(2000), TIMER_BLOCK_TIME);
+
 
     //uint8_t dark_green[3] = {0, 20, 0};
-    //uint8_t black[3] = {0, 0, 0};
+    uint8_t black[3] = {0, 0, 0};
     uint8_t green[3] = GREEN;
     uint8_t blue[3] = BLUE;
     uint8_t red[3] = RED;
     //uint8_t orange[3] = {255, 90, 0};
     
-    // Set the timer speed...
-    //xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), 1000);
-
+    // Start out the LEDs as RGB at array 1,2, and 3 respectively.
+    // First iteration of spinLEDs() will move them counter clockwise
+    // So that R starts out at 0, G at 1, and B at 2...
     if (reset)
     {
-        for (i=0; i<MAX_PIXELS; i++) {
-            buffer[i][0] = 0;
-            buffer[i][1] = 0;
-            buffer[i][2] = 0;
+        COPY_COLOR(buffer[0], black);
+        COPY_COLOR(buffer[1], red);
+        COPY_COLOR(buffer[2], green);
+        COPY_COLOR(buffer[3], blue);
+        
+        for (i=4; i<MAX_PIXELS; i++)
+        {
+            COPY_COLOR(buffer[i], black);
         }
     }
-    
-    COPY_COLOR(buffer[0], red);
-    COPY_COLOR(buffer[1], green);
-    COPY_COLOR(buffer[2], blue);
-    
-   
-    
+ 
+    spinLEDs(false, buffer);
         
     /*    
     COPY_COLOR(buffer[11], green);
@@ -149,6 +181,16 @@ static void ledTest(uint8_t buffer[][3], bool reset)
     */
 }
 
+/*************** Flight Timer **************/
+
+static void flightTimer(uint8_t buffer[][3], bool reset)
+{
+    
+
+
+}
+
+
 /**************** Green Spin ***************/
 
 static const uint8_t greenSpin[][3] = {
@@ -159,10 +201,9 @@ static const uint8_t greenSpin[][3] = {
 static void greenSpinEffect(uint8_t buffer[][3], bool reset)
 {
     int i;
-    uint8_t temp[3];
     
     // Set the timer speed a litte slower...
-    xTimerChangePeriod(timer, M2T(100), 100);
+    xTimerChangePeriod(timer, M2T(100), TIMER_BLOCK_TIME);
 
     if (reset)
     {
@@ -172,12 +213,7 @@ static void greenSpinEffect(uint8_t buffer[][3], bool reset)
         }
     }
     
-    COPY_COLOR(temp, buffer[MAX_PIXELS-1]);
-    for (i=MAX_PIXELS-1;i>0;i--)
-    {
-        COPY_COLOR(buffer[i], buffer[i-1]);
-    }
-    COPY_COLOR(buffer[0], temp);
+    spinLEDs(true, buffer);
 }
 
 
@@ -191,7 +227,7 @@ static void thrustEffect(uint8_t buffer[][3], bool reset)
     int thrust_value = 0;
     
     // Set the timer speed...
-    xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), 100);
+    xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), TIMER_BLOCK_TIME);
 
     if (reset) {
         //Init
@@ -209,7 +245,7 @@ static void thrustEffect(uint8_t buffer[][3], bool reset)
 }
 
 
-/**************** White spin ***************/
+/**************** White Spin ***************/
 
 static const uint8_t cw_whiteRing[][3] = {BLACK, BLACK, BLACK, BLACK, BLACK,
                                           {1,1,1}, {2,2,2}, {4,4,4}, {8,8,8}, 
@@ -224,38 +260,23 @@ static const uint8_t ccw_whiteRing[][3] = {{40, 40, 40}, {32, 32, 32}, {16,16,16
 
 static void whiteSpinEffect(uint8_t buffer[][3], bool reset)
 {
-  int i;
-  uint8_t temp[3];
+    int i;
   
     // Set the timer speed...
-    xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), 100);
+    xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), TIMER_BLOCK_TIME);
   
-  if (reset)
-  {
-    for (i=0; i<MAX_PIXELS; i++) {
-      COPY_COLOR(buffer[i], cw_whiteRing[i]);
+    if (reset)
+    {
+        for (i=0; i<MAX_PIXELS; i++)
+        {
+            COPY_COLOR(buffer[i], cw_whiteRing[i]);
+        }
     }
-  }
 
-    /* Runs Counter Clockwise */
-    /*
-    COPY_COLOR(temp, buffer[0]);
-    for (i=0; i<11; i++) {
-        COPY_COLOR(buffer[i], buffer[i+1]);
-    }
-    COPY_COLOR(buffer[11], temp);
-    */
-    
-    /* Runs Clockwise */
-    COPY_COLOR(temp, buffer[11]);
-    for (i=11; i>0; i--) {
-        COPY_COLOR(buffer[i], buffer[i-1]);
-    }
-    COPY_COLOR(buffer[0], temp);  
-
+    spinLEDs(true, buffer);
 }
 
-/**************** Color spin ***************/
+/**************** Color Spin ***************/
 
 static const uint8_t colorRing[][3] = {
                                         BLACK, BLACK, {3,0,0}, {13,0,0}, {50,0,0}, {200,0,0},
@@ -265,10 +286,9 @@ static const uint8_t colorRing[][3] = {
 static void colorSpinEffect(uint8_t buffer[][3], bool reset)
 {
     int i;
-    uint8_t temp[3];
   
     // Set the timer speed...
-    xTimerChangePeriod(timer, M2T(80), 100);
+    xTimerChangePeriod(timer, M2T(80), TIMER_BLOCK_TIME);
   
     if (reset)
     {
@@ -277,23 +297,8 @@ static void colorSpinEffect(uint8_t buffer[][3], bool reset)
             COPY_COLOR(buffer[i], colorRing[i]);
         }
     }
-
-    /* Runs Counter Clockwise */
-    /*
-    COPY_COLOR(temp, buffer[0]);
-    for (i=0; i<11; i++) {
-        COPY_COLOR(buffer[i], buffer[i+1]);
-    }
-    COPY_COLOR(buffer[11], temp);
-    */
     
-    /* Runs Clockwise */
-    COPY_COLOR(temp, buffer[11]);
-    for (i=11; i>0; i--)
-    {
-        COPY_COLOR(buffer[i], buffer[i-1]);
-    }
-    COPY_COLOR(buffer[0], temp);  
+    spinLEDs(true, buffer);
 }
 
 /**************** Dynamic tilt effect ***************/
@@ -303,7 +308,7 @@ static void tiltEffect(uint8_t buffer[][3], bool reset)
   static int pitchid, rollid, thrust=-1;
   
     // Set the timer speed...
-    xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), 100);
+    xTimerChangePeriod(timer, M2T(MAIN_TIMER_MS), TIMER_BLOCK_TIME);
   
   if (reset)
     {
@@ -356,12 +361,12 @@ static void tiltEffect(uint8_t buffer[][3], bool reset)
 /**************** Effect list ***************/
 
 NeopixelRingEffect effectsFct[] = {blackEffect,
-                                   ledTest,
                                    greenSpinEffect,
                                    whiteSpinEffect, 
                                    colorSpinEffect,
                                    thrustEffect,
                                    tiltEffect,
+                                   ledTest,
                                   }; //TODO Add more
 
 
@@ -416,7 +421,7 @@ void neopixelringInit(void)
   
     timer = xTimerCreate( (const signed char *)"ringTimer", M2T(MAIN_TIMER_MS), 
                                      pdTRUE, NULL, neopixelringTimer );
-    xTimerStart(timer, 100);
+    xTimerStart(timer, TIMER_BLOCK_TIME);
 }
 
 PARAM_GROUP_START(ring)
