@@ -1,10 +1,13 @@
-##CrazyFlie Firmware
+##Crazyflie Firmware
 
 This project contains the source code for the Crazyflie firmware. More information can be found on the 
 [Bitcraze wiki](http://wiki.bitcraze.se/projects:crazyflie:index)
 
+##Crazyflie 2.0 Firmware
+This firmware is currently located under the [crazyflie2 branch](https://github.com/bitcraze/crazyflie-firmware/tree/crazyflie2). More work needs to be done before it is ready to be merged with the master branch.
+
+####Folder description:
 ```
-Folder description:
 ./              | Root, contains the Makefile
  + init         | Contains the main.c
  + config       | Configuration files
@@ -26,9 +29,9 @@ Folder description:
  |  + FreeRTOS  | Source FreeRTOS folder. Cleaned up from the useless files
  |  + STM32F... | Library folder of the St STM32 peripheral lib
  |  + CMSIS     | Core abstraction layer
-
-Make targets:
-
+```
+####Make targets:
+```
 all        : Shortcut for build
 compile    : Compile cflie.hex. WARNING: Do NOT update version.c
 build      : Update version.c and compile cflie.elf/hex

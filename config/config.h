@@ -61,6 +61,11 @@
 #define RADIO_DATARATE RADIO_RATE_250K
 
 #define ACTIVATE_AUTO_SHUTDOWN
+/**
+ * \def ACTIVATE_STARTUP_MELODY
+ * Playes a startup melody using the motors and PWM modulation
+ */
+//#define ACTIVATE_STARTUP_MELODY
 
 //Debug defines
 //#define BRUSHLESS_MOTORCONTROLLER
