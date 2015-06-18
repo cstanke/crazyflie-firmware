@@ -76,6 +76,13 @@
 #define LINSCALE(domain_low, domain_high, codomain_low, codomain_high, value) ((codomain_high - codomain_low) / (domain_high - domain_low)) * (value - domain_low) + codomain_low
 #define SET_WHITE(dest, intensity) dest[0] = intensity; dest[1] = intensity; dest[2] = intensity;
 
+#define TIMER_BLOCK_TIME 100 // A good default for xBlockTime
+#define MAIN_TIMER_MS 40 // Bitcraze default
+//#define MAIN_TIMER_MS 80
+//#define MAIN_TIMER_MS 1000 // VERY slow
+
+static xTimerHandle timer;
+
 static uint32_t effect = 0;
 static uint32_t neffect;
 static uint8_t headlightEnable = 0;
@@ -270,6 +277,37 @@ static void doubleSpinEffect(uint8_t buffer[][3], bool reset) {
 
   step ++;
 }
+
+/**************** Police Spinner effect ***************/
+
+static const uint8_t policeRing[][3] = {
+                                        BLACK, BLACK, {3,0,0}, {13,0,0}, {50,0,0}, {200,0,0},
+                                        BLACK, BLACK, {0,0,3}, {0,0,13}, {0,0,50}, {0,0,200},
+                                      };
+
+static void policeSpinEffect(uint8_t buffer[][3], bool reset)
+{
+    int i;
+    uint8_t temp[3];
+    
+    // Set the timer speed...
+    xTimerChangePeriod(timer, M2T(80), TIMER_BLOCK_TIME);
+  
+    if (reset)
+    {
+        for (i=0; i<NBR_LEDS; i++)
+        {
+            COPY_COLOR(buffer[i], policeRing[i]);
+        }
+    }
+    
+    COPY_COLOR(temp, buffer[0]);
+    for (i=0; i<(NBR_LEDS-1); i++) {
+        COPY_COLOR(buffer[i], buffer[i+1]);
+    }
+    COPY_COLOR(buffer[(NBR_LEDS-1)], temp);
+}
+
 
 /**************** Dynamic tilt effect ***************/
 
@@ -546,7 +584,8 @@ NeopixelRingEffect effectsFct[] = {blackEffect,
                                    batteryChargeEffect,
                                    boatEffect,
                                    siren,
-                                   gravityLight
+                                   gravityLight,
+                                   policeSpinEffect
                                   }; //TODO Add more
 
 /*
@@ -557,7 +596,7 @@ NeopixelRingEffect effectsFct[] = {blackEffect,
 */
 /********** Ring init and switching **********/
 
-static xTimerHandle timer;
+//static xTimerHandle timer;
 
 
 
@@ -604,9 +643,13 @@ void neopixelringInit(void)
   GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
   GPIO_Init(GPIOB, &GPIO_InitStructure);
 
-  timer = xTimerCreate( (const signed char *)"ringTimer", M2T(55),
+  //timer = xTimerCreate( (const signed char *)"ringTimer", M2T(55),
+  //                                 pdTRUE, NULL, neopixelringTimer );                                   
+  timer = xTimerCreate( (const signed char *)"ringTimer", M2T(MAIN_TIMER_MS),
                                      pdTRUE, NULL, neopixelringTimer );
-  xTimerStart(timer, 100);
+                                                                        
+  //xTimerStart(timer, 100);
+  xTimerStart(timer, TIMER_BLOCK_TIME);
 }
 
 PARAM_GROUP_START(ring)
