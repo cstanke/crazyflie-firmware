@@ -280,16 +280,20 @@ static void doubleSpinEffect(uint8_t buffer[][3], bool reset) {
 
 /**************** Police Spinner effect ***************/
 
+//static const uint8_t policeRing[][3] = {
+//                                        BLACK, BLACK, {3,0,0}, {13,0,0}, {50,0,0}, {200,0,0},
+//                                        BLACK, BLACK, {0,0,3}, {0,0,13}, {0,0,50}, {0,0,200},
+//                                      };
+
 static const uint8_t policeRing[][3] = {
-                                        BLACK, BLACK, {3,0,0}, {13,0,0}, {50,0,0}, {200,0,0},
-                                        BLACK, BLACK, {0,0,3}, {0,0,13}, {0,0,50}, {0,0,200},
+                                        {200,0,0}, {50,0,0}, {13,0,0}, {3,0,0}, BLACK, BLACK,
+                                        {0,0,200}, {0,0,50}, {0,0,13}, {0,0,3}, BLACK, BLACK,
                                       };
 
 static void policeSpinEffect(uint8_t buffer[][3], bool reset)
 {
     int i;
     uint8_t temp[3];
-    
     // Set the timer speed...
     xTimerChangePeriod(timer, M2T(80), TIMER_BLOCK_TIME);
   
